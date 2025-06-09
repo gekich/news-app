@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {{range .Posts}}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-2">
+                    <a href="/posts/{{.ID.Hex}}" 
+                       hx-get="/posts/{{.ID.Hex}}"
+                       hx-target="#content"
+                       hx-swap="innerHTML transition:true"
+                       class="hover:text-blue-600 transition">{{.Title}}</a>
+                </h2>
+                <p class="text-gray-600 mb-4 line-clamp-3">{{truncate .Content 200}}</p>
+                {{template "post_actions" dict "Post" .}}
+            </div>
+        </div>
+        {{else}}
+        <div class="col-span-full bg-white rounded-lg shadow-md p-6">
+            <p class="text-gray-600 text-center">No posts found. <a href="/posts/new" class="text-blue-600 hover:underline">Create a new post</a>.</p>
+        </div>
+        {{end}}
+    </div>
+    {{template "pagination" .}}
+</div>
+{{end}}

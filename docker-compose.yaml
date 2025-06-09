@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - CONTAINER=true
+      - MONGO_URI=mongodb://mongodb:27017
+      - APP_POSTS_PER_PAGE=12
+    depends_on:
+      - mongodb
+    networks:
+      - news-app-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7.0
+    environment:
+      - MONGO_INITDB_DATABASE=news_app
+    networks:
+      - news-app-network
+
+networks:
+  news-app-network:
+    driver: bridge

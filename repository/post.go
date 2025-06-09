@@ -1,0 +1,146 @@
+package repository
+
+import (
+	"context"
+	"time"
+
+	"github.com/gekich/news-app/models"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+const postCollection = "posts"
+
+// PostRepository handles database operations for posts
+type PostRepository struct {
+	collection *mongo.Collection
+}
+
+// NewPostRepository creates a new PostRepository
+func NewPostRepository(db *mongo.Database) *PostRepository {
+	return &PostRepository{
+		collection: db.Collection(postCollection),
+	}
+}
+
+// FindAll retrieves all posts with optional pagination
+func (r *PostRepository) FindAll(ctx context.Context, page, limit int64) ([]models.Post, bool, error) {
+	// Configure the find options for the main query
+	opts := options.Find()
+	opts.SetSort(bson.D{{"created_at", -1}})
+
+	if limit > 0 {
+		opts.SetSkip((page - 1) * limit)
+		opts.SetLimit(limit)
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, false, err
+	}
+	defer cursor.Close(ctx)
+
+	var posts []models.Post
+	if err := cursor.All(ctx, &posts); err != nil {
+		return nil, false, err
+	}
+
+	// Check if there are more pages
+	hasMorePages := false
+	if limit > 0 && int64(len(posts)) == limit {
+		// Create options for the count query to check if there are more posts
+		countOpts := options.Count()
+		skip := (page) * limit
+		countOpts.SetSkip(skip)
+		countOpts.SetLimit(1)
+
+		// Check if there's at least one more post
+		count, err := r.collection.CountDocuments(ctx, bson.M{}, countOpts)
+		if err == nil && count > 0 {
+			hasMorePages = true
+		}
+	}
+
+	return posts, hasMorePages, nil
+}
+
+// FindByID retrieves a post by its ID
+func (r *PostRepository) FindByID(ctx context.Context, id string) (models.Post, error) {
+	var post models.Post
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return post, err
+	}
+
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&post)
+	return post, err
+}
+
+// Create inserts a new post
+func (r *PostRepository) Create(ctx context.Context, post models.Post) (string, error) {
+	now := time.Now()
+	post.CreatedAt = now
+	post.UpdatedAt = now
+
+	result, err := r.collection.InsertOne(ctx, post)
+	if err != nil {
+		return "", err
+	}
+
+	id := result.InsertedID.(primitive.ObjectID).Hex()
+	return id, nil
+}
+
+// Update modifies an existing post
+func (r *PostRepository) Update(ctx context.Context, id string, post models.Post) error {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	post.UpdatedAt = time.Now()
+
+	update := bson.M{
+		"$set": bson.M{
+			"title":      post.Title,
+			"content":    post.Content,
+			"updated_at": post.UpdatedAt,
+		},
+	}
+
+	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)
+	return err
+}
+
+// Delete removes a post from the repository by its ID
+func (r *PostRepository) Delete(ctx context.Context, id string) error {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	return err
+}
+
+// CreateMany inserts multiple posts into the repository
+func (r *PostRepository) CreateMany(ctx context.Context, posts []models.Post) error {
+	if len(posts) == 0 {
+		return nil
+	}
+
+	now := time.Now()
+	documents := make([]interface{}, len(posts))
+
+	for i := range posts {
+		posts[i].CreatedAt = now
+		posts[i].UpdatedAt = now
+		documents[i] = posts[i]
+	}
+
+	_, err := r.collection.InsertMany(ctx, documents)
+	return err
+}
