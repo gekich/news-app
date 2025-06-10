@@ -29,20 +29,6 @@ func NewPostHandler(repo *repository.PostRepository, tmpl map[string]*template.T
 	}
 }
 
-// renderTemplate handles template rendering with proper error handling
-func (h *PostHandler) renderTemplate(w http.ResponseWriter, templateName string, data map[string]interface{}, isHTMX bool) {
-	if isHTMX {
-		if err := h.tmpl[templateName].ExecuteTemplate(w, "content", data); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	if err := h.tmpl[templateName].Execute(w, data); err != nil {
-		http.Error(w, "Failed to render template", http.StatusInternalServerError)
-	}
-}
-
 // isHTMXRequest checks if the request is from HTMX
 func isHTMXRequest(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
@@ -72,12 +58,17 @@ func (h *PostHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"TotalPages":  totalPages,
 	}
 
-	isHTMX := isHTMXRequest(r)
-	if isHTMX {
+	if isHTMXRequest(r) {
 		w.Header().Set("HX-Push-Url", fmt.Sprintf("/posts?page=%d", page))
+		if err := h.tmpl["post_list"].ExecuteTemplate(w, "content", data); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+		}
+		return
 	}
 
-	h.renderTemplate(w, "post_list", data, isHTMX)
+	if err := h.tmpl["post_list"].Execute(w, data); err != nil {
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+	}
 }
 
 func (h *PostHandler) Show(w http.ResponseWriter, r *http.Request) {
@@ -96,12 +87,17 @@ func (h *PostHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"Post": post,
 	}
 
-	isHTMX := isHTMXRequest(r)
-	if isHTMX {
+	if isHTMXRequest(r) {
 		w.Header().Set("HX-Push-Url", fmt.Sprintf("/posts/%s", id))
+		if err := h.tmpl["show"].ExecuteTemplate(w, "content", data); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+		}
+		return
 	}
 
-	h.renderTemplate(w, "show", data, isHTMX)
+	if err := h.tmpl["show"].Execute(w, data); err != nil {
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+	}
 }
 
 func (h *PostHandler) New(w http.ResponseWriter, r *http.Request) {
@@ -112,12 +108,17 @@ func (h *PostHandler) New(w http.ResponseWriter, r *http.Request) {
 		"Method": "post",
 	}
 
-	isHTMX := isHTMXRequest(r)
-	if isHTMX {
+	if isHTMXRequest(r) {
 		w.Header().Set("HX-Push-Url", "/posts/new")
+		if err := h.tmpl["form"].ExecuteTemplate(w, "content", data); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+		}
+		return
 	}
 
-	h.renderTemplate(w, "form", data, isHTMX)
+	if err := h.tmpl["form"].Execute(w, data); err != nil {
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+	}
 }
 
 func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -131,6 +132,7 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Content: r.FormValue("content"),
 	}
 
+	isHTMX := isHTMXRequest(r)
 	errors, valid := validation.ValidatePost(post)
 	if !valid {
 		data := map[string]interface{}{
@@ -141,7 +143,16 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Method": "post",
 		}
 
-		h.renderTemplate(w, "form", data, isHTMXRequest(r))
+		if isHTMX {
+			if err := h.tmpl["form"].ExecuteTemplate(w, "content", data); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		if err := h.tmpl["form"].Execute(w, data); err != nil {
+			http.Error(w, "Failed to render template", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -151,7 +162,7 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isHTMXRequest(r) {
+	if isHTMX {
 		http.Redirect(w, r, fmt.Sprintf("/posts/%s", id), http.StatusSeeOther)
 		return
 	}
@@ -178,12 +189,17 @@ func (h *PostHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		"Method": "put",
 	}
 
-	isHTMX := isHTMXRequest(r)
-	if isHTMX {
+	if isHTMXRequest(r) {
 		w.Header().Set("HX-Push-Url", fmt.Sprintf("/posts/%s/edit", id))
+		if err := h.tmpl["form"].ExecuteTemplate(w, "content", data); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+		}
+		return
 	}
 
-	h.renderTemplate(w, "form", data, isHTMX)
+	if err := h.tmpl["form"].Execute(w, data); err != nil {
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+	}
 }
 
 func (h *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -207,6 +223,7 @@ func (h *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 	existingPost.Title = r.FormValue("title")
 	existingPost.Content = r.FormValue("content")
 
+	isHTMX := isHTMXRequest(r)
 	errors, valid := validation.ValidatePost(existingPost)
 	if !valid {
 		data := map[string]interface{}{
@@ -217,7 +234,16 @@ func (h *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 			"Method": "put",
 		}
 
-		h.renderTemplate(w, "form", data, isHTMXRequest(r))
+		if isHTMX {
+			if err := h.tmpl["form"].ExecuteTemplate(w, "content", data); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+			}
+			return
+		}
+
+		if err := h.tmpl["form"].Execute(w, data); err != nil {
+			http.Error(w, "Failed to render template", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -227,7 +253,7 @@ func (h *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isHTMXRequest(r) {
+	if isHTMX {
 		http.Redirect(w, r, fmt.Sprintf("/posts/%s", id), http.StatusSeeOther)
 		return
 	}
@@ -276,7 +302,9 @@ func (h *PostHandler) SeedHandler(w http.ResponseWriter, r *http.Request) {
 			"TotalPages":  totalPages,
 		}
 
-		h.renderTemplate(w, "post_list", data, true)
+		if err := h.tmpl["post_list"].ExecuteTemplate(w, "content", data); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+		}
 		return
 	}
 
