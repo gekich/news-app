@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gekich/news-app/templates"
 	"log"
 	"net/http"
 	"time"
@@ -31,7 +32,8 @@ func main() {
 	defer mongoDB.Disconnect(ctx)
 
 	postRepo := repository.NewPostRepository(mongoDB.Database(cfg.Mongo.DB))
-	postHandler := handlers.NewPostHandler(postRepo, cfg)
+	postTemplates := templates.PostTemplates()
+	postHandler := handlers.NewPostHandler(postRepo, postTemplates, cfg)
 	r := router.SetupRouter(postHandler)
 
 	serverAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)

@@ -1,3 +1,4 @@
+// config.go
 package config
 
 import (
@@ -27,10 +28,23 @@ type Config struct {
 }
 
 func Load() (Config, error) {
-	var config Config
-
 	v := viper.New()
 
+	setDefaults(v)
+
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+
+	var config Config
+	if err := v.Unmarshal(&config); err != nil {
+		return config, fmt.Errorf("unable to decode config into struct: %w", err)
+	}
+
+	return config, nil
+}
+
+// setDefaults defines all default configuration values
+func setDefaults(v *viper.Viper) {
 	defaultHost := "localhost"
 	if isRunningInContainer() {
 		defaultHost = "0.0.0.0"
@@ -42,21 +56,6 @@ func Load() (Config, error) {
 	v.SetDefault("mongo.db", "news_app")
 	v.SetDefault("mongo.timeout", 10)
 	v.SetDefault("app.posts_per_page", 12)
-
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
-
-	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return config, fmt.Errorf("error reading config file: %w", err)
-		}
-	}
-
-	if err := v.Unmarshal(&config); err != nil {
-		return config, fmt.Errorf("unable to decode config into struct: %w", err)
-	}
-
-	return config, nil
 }
 
 // isRunningInContainer detects if the app is running inside a container

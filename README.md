@@ -8,13 +8,13 @@
 2. Run with Docker Compose:
 
 ```bash
-docker-compose up --build
+docker-compose up -d
 ```
 
-Or Makefile: 
+Or using Makefile: 
 
-```makefile
-up
+```bash
+make up
 ```
 
 3. Open your browser and navigate to `http://localhost:8080`
@@ -24,10 +24,10 @@ up
 docker-compose down -v
 ```
 
-Or Makefile:
+Or using Makefile:
 
-```makefile
-remove
+```bash
+make remove
 ```
 
 ### Configuration (Optional)
@@ -45,6 +45,12 @@ You can configure the application using **Environment variables**: Use uppercase
 | mongo.timeout | MONGO_TIMEOUT        | 10                       | MongoDB database timeout in seconds |
 | app.posts_per_page | APP_POSTS_PER_PAGE   | 12              | Number of posts per page            |
 
+## Testing
+
+### Running Tests
+
+- tbd
+
 ## Technologies Used
 
 - **Go 1.24**
@@ -54,3 +60,5 @@ You can configure the application using **Environment variables**: Use uppercase
 - **HTMx**
 - **Tailwind CSS**
 - **Docker & Docker Compose**
+- **Testify**
+- **Dockertest** (for integration testing)

@@ -10,7 +10,6 @@ import (
 	"github.com/gekich/news-app/models"
 	"github.com/gekich/news-app/repository"
 	"github.com/gekich/news-app/seeder"
-	"github.com/gekich/news-app/templates"
 	"github.com/gekich/news-app/validation"
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,10 +21,10 @@ type PostHandler struct {
 	config config.Config
 }
 
-func NewPostHandler(repo *repository.PostRepository, cfg config.Config) *PostHandler {
+func NewPostHandler(repo *repository.PostRepository, tmpl map[string]*template.Template, cfg config.Config) *PostHandler {
 	return &PostHandler{
 		repo:   repo,
-		tmpl:   templates.PostTemplates(),
+		tmpl:   tmpl,
 		config: cfg,
 	}
 }
@@ -262,8 +261,7 @@ func (h *PostHandler) SeedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isHTMX := isHTMXRequest(r)
-	if isHTMX {
+	if isHTMXRequest(r) {
 		posts, totalPages, err := h.repo.FindAll(r.Context(), 1, int64(h.config.App.PostsPerPage))
 		if err != nil {
 			http.Error(w, "Failed to fetch posts after seeding", http.StatusInternalServerError)
