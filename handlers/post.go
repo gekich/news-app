@@ -34,6 +34,45 @@ func isHTMXRequest(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
 }
 
+// renderTemplate renders the specified template with the given data
+func (h *PostHandler) renderTemplate(w http.ResponseWriter, r *http.Request, templateName string, data map[string]interface{}, pushURL string) {
+	isHTMX := isHTMXRequest(r)
+
+	if isHTMX {
+		if pushURL != "" {
+			w.Header().Set("HX-Push-Url", pushURL)
+		}
+		if err := h.tmpl[templateName].ExecuteTemplate(w, "content", data); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if err := h.tmpl[templateName].Execute(w, data); err != nil {
+		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+	}
+}
+
+// handleError sends an appropriate error response
+func (h *PostHandler) handleError(w http.ResponseWriter, err error, message string, status int) {
+	if err == mongo.ErrNoDocuments {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+	http.Error(w, message, status)
+}
+
+// redirectResponse redirects the user to the specified URL
+func (h *PostHandler) redirectResponse(w http.ResponseWriter, r *http.Request, url string) {
+	if isHTMXRequest(r) {
+		if url != "" {
+			w.Header().Set("HX-Redirect", url)
+		}
+		return
+	}
+	http.Redirect(w, r, url, http.StatusSeeOther)
+}
+
 func (h *PostHandler) Index(w http.ResponseWriter, r *http.Request) {
 	page := 1
 	limit := int64(h.config.App.PostsPerPage)
@@ -48,7 +87,7 @@ func (h *PostHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 	posts, totalPages, err := h.repo.FindAll(r.Context(), int64(page), limit)
 	if err != nil {
-		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
+		h.handleError(w, err, "Failed to fetch posts", http.StatusInternalServerError)
 		return
 	}
 
@@ -58,28 +97,14 @@ func (h *PostHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"TotalPages":  totalPages,
 	}
 
-	if isHTMXRequest(r) {
-		w.Header().Set("HX-Push-Url", fmt.Sprintf("/posts?page=%d", page))
-		if err := h.tmpl["post_list"].ExecuteTemplate(w, "content", data); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	if err := h.tmpl["post_list"].Execute(w, data); err != nil {
-		http.Error(w, "Failed to render template", http.StatusInternalServerError)
-	}
+	h.renderTemplate(w, r, "post_list", data, fmt.Sprintf("/posts?page=%d", page))
 }
 
 func (h *PostHandler) Show(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	post, err := h.repo.FindByID(r.Context(), id)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			http.Error(w, "Post not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Failed to fetch post", http.StatusInternalServerError)
-		}
+		h.handleError(w, err, "Failed to fetch post", http.StatusInternalServerError)
 		return
 	}
 
@@ -87,17 +112,7 @@ func (h *PostHandler) Show(w http.ResponseWriter, r *http.Request) {
 		"Post": post,
 	}
 
-	if isHTMXRequest(r) {
-		w.Header().Set("HX-Push-Url", fmt.Sprintf("/posts/%s", id))
-		if err := h.tmpl["show"].ExecuteTemplate(w, "content", data); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	if err := h.tmpl["show"].Execute(w, data); err != nil {
-		http.Error(w, "Failed to render template", http.StatusInternalServerError)
-	}
+	h.renderTemplate(w, r, "show", data, fmt.Sprintf("/posts/%s", id))
 }
 
 func (h *PostHandler) New(w http.ResponseWriter, r *http.Request) {
@@ -108,22 +123,12 @@ func (h *PostHandler) New(w http.ResponseWriter, r *http.Request) {
 		"Method": "post",
 	}
 
-	if isHTMXRequest(r) {
-		w.Header().Set("HX-Push-Url", "/posts/new")
-		if err := h.tmpl["form"].ExecuteTemplate(w, "content", data); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	if err := h.tmpl["form"].Execute(w, data); err != nil {
-		http.Error(w, "Failed to render template", http.StatusInternalServerError)
-	}
+	h.renderTemplate(w, r, "form", data, "/posts/new")
 }
 
 func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		h.handleError(w, err, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
 
@@ -132,7 +137,6 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Content: r.FormValue("content"),
 	}
 
-	isHTMX := isHTMXRequest(r)
 	errors, valid := validation.ValidatePost(post)
 	if !valid {
 		data := map[string]interface{}{
@@ -143,42 +147,29 @@ func (h *PostHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Method": "post",
 		}
 
-		if isHTMX {
-			if err := h.tmpl["form"].ExecuteTemplate(w, "content", data); err != nil {
-				http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
-			}
-			return
-		}
-
-		if err := h.tmpl["form"].Execute(w, data); err != nil {
-			http.Error(w, "Failed to render template", http.StatusInternalServerError)
-		}
+		h.renderTemplate(w, r, "form", data, "")
 		return
 	}
 
 	id, err := h.repo.Create(r.Context(), post)
 	if err != nil {
-		http.Error(w, "Failed to create post", http.StatusInternalServerError)
+		h.handleError(w, err, "Failed to create post", http.StatusInternalServerError)
 		return
 	}
 
-	if isHTMX {
-		http.Redirect(w, r, fmt.Sprintf("/posts/%s", id), http.StatusSeeOther)
-		return
+	redirectURL := "/posts"
+	if isHTMXRequest(r) {
+		redirectURL = fmt.Sprintf("/posts/%s", id)
 	}
 
-	http.Redirect(w, r, "/posts", http.StatusSeeOther)
+	h.redirectResponse(w, r, redirectURL)
 }
 
 func (h *PostHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	post, err := h.repo.FindByID(r.Context(), id)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			http.Error(w, "Post not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Failed to fetch post", http.StatusInternalServerError)
-		}
+		h.handleError(w, err, "Failed to fetch post", http.StatusInternalServerError)
 		return
 	}
 
@@ -189,41 +180,26 @@ func (h *PostHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		"Method": "put",
 	}
 
-	if isHTMXRequest(r) {
-		w.Header().Set("HX-Push-Url", fmt.Sprintf("/posts/%s/edit", id))
-		if err := h.tmpl["form"].ExecuteTemplate(w, "content", data); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	if err := h.tmpl["form"].Execute(w, data); err != nil {
-		http.Error(w, "Failed to render template", http.StatusInternalServerError)
-	}
+	h.renderTemplate(w, r, "form", data, fmt.Sprintf("/posts/%s/edit", id))
 }
 
 func (h *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		h.handleError(w, err, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
 
 	existingPost, err := h.repo.FindByID(r.Context(), id)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			http.Error(w, "Post not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Failed to fetch post", http.StatusInternalServerError)
-		}
+		h.handleError(w, err, "Failed to fetch post", http.StatusInternalServerError)
 		return
 	}
 
 	existingPost.Title = r.FormValue("title")
 	existingPost.Content = r.FormValue("content")
 
-	isHTMX := isHTMXRequest(r)
 	errors, valid := validation.ValidatePost(existingPost)
 	if !valid {
 		data := map[string]interface{}{
@@ -234,31 +210,22 @@ func (h *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 			"Method": "put",
 		}
 
-		if isHTMX {
-			if err := h.tmpl["form"].ExecuteTemplate(w, "content", data); err != nil {
-				http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
-			}
-			return
-		}
-
-		if err := h.tmpl["form"].Execute(w, data); err != nil {
-			http.Error(w, "Failed to render template", http.StatusInternalServerError)
-		}
+		h.renderTemplate(w, r, "form", data, "")
 		return
 	}
 
 	err = h.repo.Update(r.Context(), id, existingPost)
 	if err != nil {
-		http.Error(w, "Failed to update post", http.StatusInternalServerError)
+		h.handleError(w, err, "Failed to update post", http.StatusInternalServerError)
 		return
 	}
 
-	if isHTMX {
-		http.Redirect(w, r, fmt.Sprintf("/posts/%s", id), http.StatusSeeOther)
-		return
+	redirectURL := "/posts"
+	if isHTMXRequest(r) {
+		redirectURL = fmt.Sprintf("/posts/%s", id)
 	}
 
-	http.Redirect(w, r, "/posts", http.StatusSeeOther)
+	h.redirectResponse(w, r, redirectURL)
 }
 
 func (h *PostHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -266,35 +233,28 @@ func (h *PostHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	err := h.repo.Delete(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Failed to delete post", http.StatusInternalServerError)
+		h.handleError(w, err, "Failed to delete post", http.StatusInternalServerError)
 		return
 	}
 
-	if isHTMXRequest(r) {
-		w.Header().Set("HX-Redirect", "/posts")
-		return
-	}
-
-	http.Redirect(w, r, "/posts", http.StatusSeeOther)
+	h.redirectResponse(w, r, "/posts")
 }
 
-func (h *PostHandler) SeedHandler(w http.ResponseWriter, r *http.Request) {
+func (h *PostHandler) Seed(w http.ResponseWriter, r *http.Request) {
 	samplePosts := seeder.GenerateSamplePosts(10)
 
 	err := h.repo.CreateMany(r.Context(), samplePosts)
 	if err != nil {
-		http.Error(w, "Failed to seed database: "+err.Error(), http.StatusInternalServerError)
+		h.handleError(w, err, "Failed to seed database: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if isHTMXRequest(r) {
 		posts, totalPages, err := h.repo.FindAll(r.Context(), 1, int64(h.config.App.PostsPerPage))
 		if err != nil {
-			http.Error(w, "Failed to fetch posts after seeding", http.StatusInternalServerError)
+			h.handleError(w, err, "Failed to fetch posts after seeding", http.StatusInternalServerError)
 			return
 		}
-
-		w.Header().Set("HX-Push-Url", "/posts")
 
 		data := map[string]interface{}{
 			"Posts":       posts,
@@ -302,11 +262,9 @@ func (h *PostHandler) SeedHandler(w http.ResponseWriter, r *http.Request) {
 			"TotalPages":  totalPages,
 		}
 
-		if err := h.tmpl["post_list"].ExecuteTemplate(w, "content", data); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
-		}
+		h.renderTemplate(w, r, "post_list", data, "/posts")
 		return
 	}
 
-	http.Redirect(w, r, "/posts", http.StatusSeeOther)
+	h.redirectResponse(w, r, "/posts")
 }

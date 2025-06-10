@@ -27,8 +27,6 @@ func SetupRouter(postHandler *handlers.PostHandler) http.Handler {
 		http.Redirect(w, r, "/posts", http.StatusSeeOther)
 	})
 
-	r.Post("/seed", postHandler.SeedHandler)
-
 	r.Route("/posts", func(r chi.Router) {
 		r.Get("/", postHandler.Index)
 		r.Get("/new", postHandler.New)
@@ -37,6 +35,7 @@ func SetupRouter(postHandler *handlers.PostHandler) http.Handler {
 		r.Get("/{id}/edit", postHandler.Edit)
 		r.Put("/{id}", postHandler.Update)
 		r.Delete("/{id}", postHandler.Delete)
+		r.Post("/seed", postHandler.Seed)
 	})
 
 	return r
