@@ -61,16 +61,16 @@ func (h *PostHandler) Index(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	posts, hasMorePages, err := h.repo.FindAll(r.Context(), int64(page), limit)
+	posts, totalPages, err := h.repo.FindAll(r.Context(), int64(page), limit)
 	if err != nil {
 		http.Error(w, "Failed to fetch posts", http.StatusInternalServerError)
 		return
 	}
 
 	data := map[string]interface{}{
-		"Posts":        posts,
-		"CurrentPage":  page,
-		"HasMorePages": hasMorePages,
+		"Posts":       posts,
+		"CurrentPage": page,
+		"TotalPages":  totalPages,
 	}
 
 	isHTMX := isHTMXRequest(r)
@@ -264,7 +264,7 @@ func (h *PostHandler) SeedHandler(w http.ResponseWriter, r *http.Request) {
 
 	isHTMX := isHTMXRequest(r)
 	if isHTMX {
-		posts, hasMorePages, err := h.repo.FindAll(r.Context(), 1, int64(h.config.App.PostsPerPage))
+		posts, totalPages, err := h.repo.FindAll(r.Context(), 1, int64(h.config.App.PostsPerPage))
 		if err != nil {
 			http.Error(w, "Failed to fetch posts after seeding", http.StatusInternalServerError)
 			return
@@ -273,9 +273,9 @@ func (h *PostHandler) SeedHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("HX-Push-Url", "/posts")
 
 		data := map[string]interface{}{
-			"Posts":        posts,
-			"CurrentPage":  1,
-			"HasMorePages": hasMorePages,
+			"Posts":       posts,
+			"CurrentPage": 1,
+			"TotalPages":  totalPages,
 		}
 
 		h.renderTemplate(w, "post_list", data, true)

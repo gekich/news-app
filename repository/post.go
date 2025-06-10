@@ -26,8 +26,7 @@ func NewPostRepository(db *mongo.Database) *PostRepository {
 }
 
 // FindAll retrieves all posts with optional pagination
-func (r *PostRepository) FindAll(ctx context.Context, page, limit int64) ([]models.Post, bool, error) {
-	// Configure the find options for the main query
+func (r *PostRepository) FindAll(ctx context.Context, page, limit int64) ([]models.Post, int64, error) {
 	opts := options.Find()
 	opts.SetSort(bson.D{{"created_at", -1}})
 
@@ -38,32 +37,26 @@ func (r *PostRepository) FindAll(ctx context.Context, page, limit int64) ([]mode
 
 	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
-		return nil, false, err
+		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
 	var posts []models.Post
 	if err := cursor.All(ctx, &posts); err != nil {
-		return nil, false, err
+		return nil, 0, err
 	}
 
-	// Check if there are more pages
-	hasMorePages := false
-	if limit > 0 && int64(len(posts)) == limit {
-		// Create options for the count query to check if there are more posts
-		countOpts := options.Count()
-		skip := (page) * limit
-		countOpts.SetSkip(skip)
-		countOpts.SetLimit(1)
-
-		// Check if there's at least one more post
-		count, err := r.collection.CountDocuments(ctx, bson.M{}, countOpts)
-		if err == nil && count > 0 {
-			hasMorePages = true
-		}
+	totalCount, err := r.collection.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return posts, 0, err
 	}
 
-	return posts, hasMorePages, nil
+	totalPages := int64(1)
+	if limit > 0 {
+		totalPages = (totalCount + limit - 1) / limit
+	}
+
+	return posts, totalPages, nil
 }
 
 // FindByID retrieves a post by its ID

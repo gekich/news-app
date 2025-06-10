@@ -1,19 +1,50 @@
 {{define "pagination"}}
-    {{if or (gt .CurrentPage 1) .HasMorePages}}
-    <div class="mt-6 flex justify-center">
-        {{if gt .CurrentPage 1}}
-        <button class="bg-blue-600 text-white px-4 py-2 rounded mr-2 hover:bg-blue-700 transition"
-                hx-get="/posts?page={{subtract .CurrentPage 1}}"
-                hx-target="#content"
-                hx-swap="innerHTML transition:true">Previous</button>
-        {{end}}
+    {{if gt .TotalPages 1}}
+    <div class="mt-6">
+        <div class="flex justify-center items-center flex-wrap gap-2">
+            {{/* Previous button */}}
+            {{if gt .CurrentPage 1}}
+            <a hx-get="/posts?page={{subtract .CurrentPage 1}}"
+               hx-target="#content"
+               hx-swap="innerHTML transition:true"
+               class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition cursor-pointer">
+                &laquo;
+            </a>
+            {{else}}
+            <span class="bg-gray-300 text-gray-600 px-3 py-1 rounded cursor-not-allowed">&laquo;</span>
+            {{end}}
 
-        {{if .HasMorePages}}
-        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-                hx-get="/posts?page={{add .CurrentPage 1}}"
-                hx-target="#content"
-                hx-swap="innerHTML transition:true">Next</button>
-        {{end}}
+            {{/* Page numbers */}}
+            {{$currentPage := .CurrentPage}}
+            {{range $i := (pagesToShow .CurrentPage .TotalPages)}}
+                {{if eq $i -1}}
+                <span class="text-gray-500 px-1">...</span>
+                {{else if eq $i $currentPage}}
+                <span class="bg-blue-600 text-white px-3 py-1 rounded">
+                    {{$i}}
+                </span>
+                {{else}}
+                <a hx-get="/posts?page={{$i}}"
+                   hx-target="#content"
+                   hx-swap="innerHTML transition:true"
+                   class="bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition cursor-pointer">
+                    {{$i}}
+                </a>
+                {{end}}
+            {{end}}
+
+            {{/* Next button */}}
+            {{if lt .CurrentPage .TotalPages}}
+            <a hx-get="/posts?page={{add .CurrentPage 1}}"
+               hx-target="#content"
+               hx-swap="innerHTML transition:true"
+               class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition cursor-pointer">
+                &raquo;
+            </a>
+            {{else}}
+            <span class="bg-gray-300 text-gray-600 px-3 py-1 rounded cursor-not-allowed">&raquo;</span>
+            {{end}}
+        </div>
     </div>
     {{end}}
 {{end}}
