@@ -2,7 +2,6 @@ package seeder
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/gekich/news-app/models"
@@ -58,8 +57,8 @@ func GenerateSamplePosts(count int) []models.Post {
 			ID:        primitive.NewObjectID(),
 			Title:     title,
 			Content:   content,
-			CreatedAt: time.Now().AddDate(0, 0, -rand.Intn(30)),
-			UpdatedAt: time.Now().AddDate(0, 0, -rand.Intn(15)),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}
 	}
 
