@@ -4,7 +4,7 @@
         <div class="flex justify-center items-center flex-wrap gap-2">
             {{/* Previous button */}}
             {{if gt .CurrentPage 1}}
-            <a hx-get="/posts?page={{subtract .CurrentPage 1}}"
+            <a hx-get="/posts?page={{subtract .CurrentPage 1}}{{if .Search}}&search={{.Search}}{{end}}"
                hx-target="#content"
                hx-swap="innerHTML transition:true"
                class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition cursor-pointer">
@@ -24,7 +24,7 @@
                     {{$i}}
                 </span>
                 {{else}}
-                <a hx-get="/posts?page={{$i}}"
+                <a hx-get="/posts?page={{$i}}{{if $.Search}}&search={{$.Search}}{{end}}"
                    hx-target="#content"
                    hx-swap="innerHTML transition:true"
                    class="bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition cursor-pointer">
@@ -35,7 +35,7 @@
 
             {{/* Next button */}}
             {{if lt .CurrentPage .TotalPages}}
-            <a hx-get="/posts?page={{add .CurrentPage 1}}"
+            <a hx-get="/posts?page={{add .CurrentPage 1}}{{if .Search}}&search={{.Search}}{{end}}"
                hx-target="#content"
                hx-swap="innerHTML transition:true"
                class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition cursor-pointer">

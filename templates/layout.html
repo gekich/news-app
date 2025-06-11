@@ -24,18 +24,7 @@
                     <a href="/" class="text-white text-xl font-bold">News App</a>
                 </div>
                 <div class="space-x-2">
-                    <button 
-                       class="bg-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-700 transition"
-                       hx-post="/posts/seed"
-                       hx-confirm="This will replace all existing posts with sample data. Are you sure?"
-                       hx-target="#content"
-                       hx-swap="innerHTML transition:true">Seed Database</button>
-                    <a href="/posts/new" 
-                       class="bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-blue-50 transition"
-                       hx-get="/posts/new"
-                       hx-target="#content"
-                       hx-push-url="true"
-                       hx-swap="innerHTML transition:true">New Post</a>
+                    <!-- Buttons moved to post_list.html -->
                 </div>
             </div>
         </nav>

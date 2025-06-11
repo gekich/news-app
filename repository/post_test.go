@@ -206,20 +206,30 @@ func TestPostRepository_FindAll(t *testing.T) {
 	_, err = repository.collection.InsertMany(context.Background(), posts)
 	require.NoError(t, err)
 
-	foundPosts, totalPages, err := repository.FindAll(context.Background(), 0, 0)
+	foundPosts, totalPages, err := repository.FindAll(context.Background(), 0, 0, "")
 	require.NoError(t, err)
 	assert.Equal(t, 3, len(foundPosts))
 	assert.Equal(t, int64(1), totalPages)
 
-	foundPosts, totalPages, err = repository.FindAll(context.Background(), 1, 2)
+	foundPosts, totalPages, err = repository.FindAll(context.Background(), 1, 2, "")
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(foundPosts))
 	assert.Equal(t, int64(2), totalPages)
 
-	foundPosts, totalPages, err = repository.FindAll(context.Background(), 2, 2)
+	foundPosts, totalPages, err = repository.FindAll(context.Background(), 2, 2, "")
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(foundPosts))
 	assert.Equal(t, int64(2), totalPages)
+
+	foundPosts, totalPages, err = repository.FindAll(context.Background(), 1, 10, "Post 2")
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(foundPosts))
+	assert.Equal(t, "Post 2", foundPosts[0].Title)
+
+	foundPosts, totalPages, err = repository.FindAll(context.Background(), 1, 10, "Content 3")
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(foundPosts))
+	assert.Equal(t, "Post 3", foundPosts[0].Title)
 }
 
 func TestPostRepository_CreateMany(t *testing.T) {

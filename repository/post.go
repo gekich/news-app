@@ -25,8 +25,8 @@ func NewPostRepository(db *mongo.Database) *PostRepository {
 	}
 }
 
-// FindAll retrieves all posts with optional pagination
-func (r *PostRepository) FindAll(ctx context.Context, page, limit int64) ([]models.Post, int64, error) {
+// FindAll retrieves all posts with optional pagination and search
+func (r *PostRepository) FindAll(ctx context.Context, page, limit int64, search string) ([]models.Post, int64, error) {
 	opts := options.Find()
 	opts.SetSort(bson.D{{"created_at", -1}})
 
@@ -35,7 +35,19 @@ func (r *PostRepository) FindAll(ctx context.Context, page, limit int64) ([]mode
 		opts.SetLimit(limit)
 	}
 
-	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
+	// Create filter based on search parameter
+	filter := bson.M{}
+	if search != "" {
+		// Search in both title and content fields
+		filter = bson.M{
+			"$or": []bson.M{
+				{"title": bson.M{"$regex": search, "$options": "i"}},
+				{"content": bson.M{"$regex": search, "$options": "i"}},
+			},
+		}
+	}
+
+	cursor, err := r.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -46,13 +58,13 @@ func (r *PostRepository) FindAll(ctx context.Context, page, limit int64) ([]mode
 		return nil, 0, err
 	}
 
-	totalCount, err := r.collection.CountDocuments(ctx, bson.M{})
+	totalCount, err := r.collection.CountDocuments(ctx, filter)
 	if err != nil {
 		return posts, 0, err
 	}
 
 	totalPages := int64(1)
-	if limit > 0 {
+	if limit > 0 && totalCount > 0 {
 		totalPages = (totalCount + limit - 1) / limit
 	}
 

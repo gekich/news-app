@@ -1,5 +1,46 @@
 {{define "content"}}
 <div class="mb-6">
+    <div class="mb-6">
+        <div class="flex flex-col md:flex-row gap-2">
+            <form action="/posts" method="GET" class="flex flex-col md:flex-row gap-2 flex-grow">
+                <input 
+                    type="text" 
+                    name="search" 
+                    placeholder="Search posts..." 
+                    value="{{.Search}}" 
+                    class="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <button 
+                    type="submit" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Search
+                </button>
+                {{if .Search}}
+                <a 
+                    href="/posts" 
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                    Clear
+                </a>
+                {{end}}
+            </form>
+            <div class="flex flex-row gap-2 mt-2 md:mt-0">
+                <button 
+                    class="bg-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-700 transition"
+                    hx-post="/posts/seed"
+                    hx-confirm="This will replace all existing posts with sample data. Are you sure?"
+                    hx-target="#content"
+                    hx-swap="innerHTML transition:true">Seed Database</button>
+                <a href="/posts/new" 
+                    class="bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-blue-50 transition border border-blue-600"
+                    hx-get="/posts/new"
+                    hx-target="#content"
+                    hx-push-url="true"
+                    hx-swap="innerHTML transition:true">New Post</a>
+            </div>
+        </div>
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {{range .Posts}}
         <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -17,7 +58,13 @@
         </div>
         {{else}}
         <div class="col-span-full bg-white rounded-lg shadow-md p-6">
-            <p class="text-gray-600 text-center">No posts found. <a href="/posts/new" class="text-blue-600 hover:underline">Create a new post</a>.</p>
+            <p class="text-gray-600 text-center">No posts found.
+                {{if .Search}}
+                <a href="/posts" class="text-blue-600 hover:underline">Clear the search query</a>.
+                {{else}}
+                <a href="/posts/new" class="text-blue-600 hover:underline">Create a new post</a>.
+                {{end}}
+            </p>
         </div>
         {{end}}
     </div>

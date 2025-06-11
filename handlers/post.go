@@ -85,7 +85,10 @@ func (h *PostHandler) Index(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	posts, totalPages, err := h.repo.FindAll(r.Context(), int64(page), limit)
+	// Get search parameter from query
+	search := r.URL.Query().Get("search")
+
+	posts, totalPages, err := h.repo.FindAll(r.Context(), int64(page), limit, search)
 	if err != nil {
 		h.handleError(w, err, "Failed to fetch posts", http.StatusInternalServerError)
 		return
@@ -95,9 +98,16 @@ func (h *PostHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"Posts":       posts,
 		"CurrentPage": page,
 		"TotalPages":  totalPages,
+		"Search":      search,
 	}
 
-	h.renderTemplate(w, r, "post_list", data, fmt.Sprintf("/posts?page=%d", page))
+	// Include search parameter in pagination URL if it exists
+	paginationURL := fmt.Sprintf("/posts?page=%d", page)
+	if search != "" {
+		paginationURL = fmt.Sprintf("/posts?page=%d&search=%s", page, search)
+	}
+
+	h.renderTemplate(w, r, "post_list", data, paginationURL)
 }
 
 func (h *PostHandler) Show(w http.ResponseWriter, r *http.Request) {
@@ -250,7 +260,7 @@ func (h *PostHandler) Seed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isHTMXRequest(r) {
-		posts, totalPages, err := h.repo.FindAll(r.Context(), 1, int64(h.config.App.PostsPerPage))
+		posts, totalPages, err := h.repo.FindAll(r.Context(), 1, int64(h.config.App.PostsPerPage), "")
 		if err != nil {
 			h.handleError(w, err, "Failed to fetch posts after seeding", http.StatusInternalServerError)
 			return
@@ -260,6 +270,7 @@ func (h *PostHandler) Seed(w http.ResponseWriter, r *http.Request) {
 			"Posts":       posts,
 			"CurrentPage": 1,
 			"TotalPages":  totalPages,
+			"Search":      "",
 		}
 
 		h.renderTemplate(w, r, "post_list", data, "/posts")
