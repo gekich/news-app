@@ -5,6 +5,9 @@
 up: ## Start the application
 	docker-compose up -d
 
+up: ## Start the application and force build
+	docker-compose up -d --build
+
 down: ## Stop and remove all running containers
 	docker-compose down
 
