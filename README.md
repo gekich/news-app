@@ -1,5 +1,7 @@
 # News App - Go CRUD HTMx+MongoDB Application
 
+![News app](assets/screenshots/screenshot-1.png)
+
 ## Setup and Run
 
 ### Using Docker Compose
