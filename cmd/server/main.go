@@ -34,7 +34,7 @@ func main() {
 	postRepo := repository.NewPostRepository(mongoDB.Database(cfg.Mongo.DB))
 	postTemplates := templates.PostTemplates()
 	postHandler := handlers.NewPostHandler(postRepo, postTemplates, cfg)
-	r := router.SetupRouter(postHandler)
+	r := router.SetupRouter(postHandler, cfg.App.StaticDirectory)
 
 	serverAddr := fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port)
 	log.Printf("Serving at %s\n", serverAddr)

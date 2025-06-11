@@ -24,7 +24,7 @@ test-integration: ## Run integration tests
 test-all: ## Run all test including unit and integration
 	@go test -v -tags="unit,integration" ./...
 
-coverage: ## Generate and open coverage reports
+coverage: ## Generate and open coverage report
 	@echo "Generating coverage reports..."
 	@go test -tags=unit -coverprofile=unit.out ./...
 	@go test -tags=integration -coverprofile=integration.out ./...
@@ -33,7 +33,7 @@ coverage: ## Generate and open coverage reports
 	@echo "Opening HTML coverage report..."
 	@go tool cover -html=coverage.out
 
-clean: ## Delete coverage reports
+clean: ## Delete coverage report files
 	@echo "Cleaning up..."
 	@rm -f *.out
 

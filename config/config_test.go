@@ -28,6 +28,7 @@ func TestLoad(t *testing.T) {
 		os.Unsetenv("MONGO_DB")
 		os.Unsetenv("MONGO_TIMEOUT")
 		os.Unsetenv("APP_POSTS_PER_PAGE")
+		os.Unsetenv("APP_STATIC_DIRECTORY")
 		os.Unsetenv("CONTAINER")
 
 		config, err := Load()
@@ -40,6 +41,7 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, "news_app", config.Mongo.DB)
 		assert.Equal(t, 10, config.Mongo.Timeout)
 		assert.Equal(t, 12, config.App.PostsPerPage)
+		assert.Equal(t, "static", config.App.StaticDirectory)
 	})
 
 	t.Run("environment variables override defaults", func(t *testing.T) {
@@ -49,6 +51,7 @@ func TestLoad(t *testing.T) {
 		os.Setenv("MONGO_DB", "test_db")
 		os.Setenv("MONGO_TIMEOUT", "5")
 		os.Setenv("APP_POSTS_PER_PAGE", "20")
+		os.Setenv("APP_STATIC_DIRECTORY", "not_static")
 
 		defer func() {
 			os.Unsetenv("SERVER_HOST")
@@ -57,6 +60,7 @@ func TestLoad(t *testing.T) {
 			os.Unsetenv("MONGO_DB")
 			os.Unsetenv("MONGO_TIMEOUT")
 			os.Unsetenv("APP_POSTS_PER_PAGE")
+			os.Unsetenv("APP_STATIC_DIRECTORY")
 		}()
 
 		config, err := Load()
@@ -68,6 +72,7 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, "test_db", config.Mongo.DB)
 		assert.Equal(t, 5, config.Mongo.Timeout)
 		assert.Equal(t, 20, config.App.PostsPerPage)
+		assert.Equal(t, "not_static", config.App.StaticDirectory)
 	})
 }
 

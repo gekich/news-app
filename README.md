@@ -44,12 +44,30 @@ You can configure the application using **Environment variables**: Use uppercase
 | mongo.db | MONGO_DB             | news_app                 | MongoDB database name               |
 | mongo.timeout | MONGO_TIMEOUT        | 10                       | MongoDB database timeout in seconds |
 | app.posts_per_page | APP_POSTS_PER_PAGE   | 12              | Number of posts per page            |
+| app.static_directory | APP_STATIC_DIRECTORY | static                   | Directory for static assets          |
 
 ## Testing
 
 ### Running Tests
 
-- tbd
+Run tests using the following Makefile commands:
+
+```bash
+# Run unit tests
+make test-unit
+
+# Run integration tests
+make test-integration
+
+# Run all tests (unit and integration)
+make test-all
+
+# Generate and open coverage report
+make coverage
+
+# Clean up coverage report files
+make clean
+```
 
 ## Technologies Used
 

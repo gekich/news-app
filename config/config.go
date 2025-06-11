@@ -23,7 +23,8 @@ type Config struct {
 	} `mapstructure:"mongo"`
 
 	App struct {
-		PostsPerPage int `mapstructure:"posts_per_page"`
+		PostsPerPage    int    `mapstructure:"posts_per_page"`
+		StaticDirectory string `mapstructure:"static_directory"`
 	} `mapstructure:"app"`
 }
 
@@ -56,6 +57,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("mongo.db", "news_app")
 	v.SetDefault("mongo.timeout", 10)
 	v.SetDefault("app.posts_per_page", 12)
+	v.SetDefault("app.static_directory", "static")
 }
 
 // isRunningInContainer detects if the app is running inside a container

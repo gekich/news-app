@@ -1,47 +1,52 @@
 package templates
 
 import (
+	"fmt"
 	"html/template"
 
 	"github.com/gekich/news-app/templates/functions"
 )
 
-// TemplateFuncs combines all template functions
-var TemplateFuncs template.FuncMap
-
-func init() {
+// NewTemplateFuncs creates and returns a new template.FuncMap
+func NewTemplateFuncs() template.FuncMap {
 	// Initialize template functions map
-	TemplateFuncs = template.FuncMap{}
+	funcs := template.FuncMap{}
 
 	// Add basic utility functions
 	basicFuncs := functions.BasicFuncs()
 	for name, fn := range basicFuncs {
-		TemplateFuncs[name] = fn
+		funcs[name] = fn
 	}
 
 	// Add pagination functions
 	paginationFuncs := functions.PaginationFuncs()
 	for name, fn := range paginationFuncs {
-		TemplateFuncs[name] = fn
+		funcs[name] = fn
 	}
+	return funcs
 }
 
 // PostTemplates initializes and returns templates for post handling
 func PostTemplates() map[string]*template.Template {
-	layout := "templates/layout.html"
+	return NewPostTemplates("templates")
+}
+
+// NewPostTemplates initializes and returns templates for post handling with a custom base path
+func NewPostTemplates(basePath string) map[string]*template.Template {
+	layout := fmt.Sprintf("%s/layout.html", basePath)
 	partials := []string{
-		"templates/partials/back_button.html",
-		"templates/partials/post_actions.html",
-		"templates/partials/pagination.html",
+		fmt.Sprintf("%s/partials/back_button.html", basePath),
+		fmt.Sprintf("%s/partials/post_actions.html", basePath),
+		fmt.Sprintf("%s/partials/pagination.html", basePath),
 	}
 
 	tmpl := map[string]*template.Template{
-		"post_list": template.Must(template.New("layout.html").Funcs(TemplateFuncs).ParseFiles(
-			append([]string{layout, "templates/posts/post_list.html"}, partials...)...)),
-		"show": template.Must(template.New("layout.html").Funcs(TemplateFuncs).ParseFiles(
-			append([]string{layout, "templates/posts/show.html"}, partials...)...)),
-		"form": template.Must(template.New("layout.html").Funcs(TemplateFuncs).ParseFiles(
-			append([]string{layout, "templates/posts/form.html"}, partials...)...)),
+		"post_list": template.Must(template.New("layout.html").Funcs(NewTemplateFuncs()).ParseFiles(
+			append([]string{layout, fmt.Sprintf("%s/posts/post_list.html", basePath)}, partials...)...)),
+		"show": template.Must(template.New("layout.html").Funcs(NewTemplateFuncs()).ParseFiles(
+			append([]string{layout, fmt.Sprintf("%s/posts/show.html", basePath)}, partials...)...)),
+		"form": template.Must(template.New("layout.html").Funcs(NewTemplateFuncs()).ParseFiles(
+			append([]string{layout, fmt.Sprintf("%s/posts/form.html", basePath)}, partials...)...)),
 	}
 
 	return tmpl
